@@ -3,7 +3,7 @@ require "spec_helper"
 describe Mongoid::Persistence::Operations::Remove do
 
   before do
-    Person.delete_all
+    [ Artist, Album, Person ].each(&:delete_all)
     Mongoid::IdentityMap.clear
   end
 
@@ -20,11 +20,37 @@ describe Mongoid::Persistence::Operations::Remove do
       end
 
       let(:in_map) do
-        Mongoid::IdentityMap.get(person.id)
+        Mongoid::IdentityMap.get(Person, person.id)
       end
 
       it "removes the document from the identity map" do
         in_map.should be_nil
+      end
+    end
+  end
+
+  context "when a dependent option exists" do
+
+    context "when accessing the parent before destroy" do
+
+      let(:artist) do
+        Artist.create(:name => "depeche mode")
+      end
+
+      let!(:album) do
+        artist.albums.create
+      end
+
+      before do
+        artist.destroy
+      end
+
+      it "allows the access" do
+        artist.name.should eq("destroyed")
+      end
+
+      it "destroys the associated document" do
+        album.should be_destroyed
       end
     end
   end

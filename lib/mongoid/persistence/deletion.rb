@@ -19,11 +19,12 @@ module Mongoid #:nodoc:
       #
       # @since 2.1.0
       def prepare(&block)
+        document.cascade!
         yield(document)
         document.freeze
         document.destroyed = true
-        document.cascade!
-        Threaded.clear_safety_options!
+        IdentityMap.remove(document)
+        Threaded.clear_options!
         true
       end
     end

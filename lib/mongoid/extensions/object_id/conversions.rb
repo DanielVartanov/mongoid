@@ -35,20 +35,18 @@ module Mongoid #:nodoc:
           case args
           when ::String
             return nil if args.blank?
-            if args.is_a?(Mongoid::Criterion::Unconvertable)
+            if args.unconvertable_to_bson?
               args
             else
               BSON::ObjectId.from_string(args)
             end
           when ::Array
-            args = args.reject { |arg| arg.blank? } if reject_blank
-            args.map do |arg|
-              convert(klass, arg, reject_blank)
-            end
+            args.delete_if { |arg| arg.blank? } if reject_blank
+            args.replace(args.map { |arg| convert(klass, arg, reject_blank) })
           when ::Hash
             args.tap do |hash|
               hash.each_pair do |key, value|
-                next unless key.to_s =~ /id/
+                next unless klass.object_id_field?(key)
                 begin
                   hash[key] = convert(klass, value, reject_blank)
                 rescue BSON::InvalidObjectId; end

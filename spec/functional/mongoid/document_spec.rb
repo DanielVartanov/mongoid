@@ -63,8 +63,11 @@ describe Mongoid::Document do
   end
 
   context "becoming another class" do
+
     before(:all) do
-      class Manager < Person; end
+      class Manager < Person
+        field :level, :type => Integer, :default => 1
+      end
     end
 
     %w{upcasting downcasting}.each do |ctx|
@@ -113,9 +116,22 @@ describe Mongoid::Document do
           became.errors.should include(:ssn)
         end
 
+        it "sets the class type" do
+          became = @obj.becomes(@to_become)
+          became._type.should == @to_become.to_s
+        end
+
         it "raises an error when inappropriate class is provided" do
           lambda {@obj.becomes(String)}.should raise_error(ArgumentError)
         end
+      end
+    end
+
+    context "upcasting to class with default attributes" do
+
+      it "applies default attributes" do
+        @obj = Person.new(:title => 'Sir').becomes(Manager)
+        @obj.level.should == 1
       end
     end
   end
@@ -256,7 +272,7 @@ describe Mongoid::Document do
         @person.addresses.first.destroy
         @person.name.should_not be_nil
         @person.name.destroy
-        @person.addresses.first.should be_nil
+        @person.addresses.should be_empty
         @person.name.should be_nil
       end
     end
@@ -359,6 +375,22 @@ describe Mongoid::Document do
       person.reload.should == from_db
     end
 
+    context "when an after initialize callback is defined" do
+
+      let!(:book) do
+        Book.create(:title => "Snow Crash")
+      end
+
+      before do
+        book.update_attribute(:chapters, 50)
+        book.reload
+      end
+
+      it "runs the callback" do
+        book.chapters.should eq(5)
+      end
+    end
+
     context "when the document was dirty" do
 
       let(:person) do
@@ -418,7 +450,7 @@ describe Mongoid::Document do
           person.reload
         end
 
-        it "should reload the association" do
+        it "reloads the association" do
           person.game.score.should == 75
         end
       end
@@ -436,7 +468,7 @@ describe Mongoid::Document do
           game.reload
         end
 
-        it "should reload the association" do
+        it "reloads the association" do
           game.person.title.should == "Mam"
         end
       end

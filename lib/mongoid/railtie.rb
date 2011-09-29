@@ -60,8 +60,7 @@ module Rails #:nodoc:
       initializer "setup database" do
         config_file = Rails.root.join("config", "mongoid.yml")
         if config_file.file?
-          settings = YAML.load(ERB.new(config_file.read).result)[Rails.env]
-          ::Mongoid.from_hash(settings) if settings.present?
+          ::Mongoid.load!(config_file)
         end
       end
 
@@ -76,17 +75,6 @@ module Rails #:nodoc:
         end
       end
 
-      # Due to all models not getting loaded and messing up inheritance queries
-      # and indexing, we need to preload the models in order to address this.
-      #
-      # This will happen every request in development, once in ther other
-      # environments.
-      initializer "preload all application models" do |app|
-        config.to_prepare do
-          ::Rails::Mongoid.load_models(app) unless $rails_rake_task
-        end
-      end
-
       # Set the proper error types for Rails. DocumentNotFound errors should be
       # 404s and not 500s, validation errors are 422s.
       initializer "load http errors" do |app|
@@ -96,6 +84,22 @@ module Rails #:nodoc:
             "Mongoid::Errors::Validations" => 422
           })
         end
+      end
+
+      # Due to all models not getting loaded and messing up inheritance queries
+      # and indexing, we need to preload the models in order to address this.
+      #
+      # This will happen every request in development, once in ther other
+      # environments.
+      initializer "preload all application models" do |app|
+        config.to_prepare do
+          ::Rails::Mongoid.preload_models(app) unless $rails_rake_task
+        end
+      end
+
+      # Need to include the Mongoid identity map middleware.
+      initializer "include the identity map" do |app|
+        app.config.middleware.use "Rack::Mongoid::Middleware::IdentityMap"
       end
 
       # Instantitate any registered observers after Rails initialization and

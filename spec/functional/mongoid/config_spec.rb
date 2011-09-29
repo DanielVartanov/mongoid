@@ -59,7 +59,7 @@ describe Mongoid::Config do
   describe ".destructive_fields" do
 
     it "returns a list of method names" do
-      described_class.destructive_fields.should include("process")
+      described_class.destructive_fields.should include(:process)
     end
   end
 
@@ -105,6 +105,10 @@ describe Mongoid::Config do
 
       it "returns nil, which is interpreted as the local time_zone" do
         described_class.use_utc.should be_false
+      end
+
+      it "sets the logger to nil" do
+        described_class.logger.should be_nil
       end
     end
 
@@ -152,21 +156,6 @@ describe Mongoid::Config do
 
       it "sets the master db" do
         described_class.master.name.should == "mongoid"
-      end
-    end
-
-    context "when configured with replset", :config => :replset_config do
-
-      let(:settings) do
-        YAML.load(ERB.new(File.new(replset_config).read).result)
-      end
-
-      it "should create a regular Mongo::ReplSetConnection" do
-        described_class.master.connection.should be_a Mongo::ReplSetConnection
-      end
-
-      it "should create regular Mongo::ReplSetConnection(s) for multiple databases" do
-        described_class.databases["shard_replset"].connection.should be_a Mongo::ReplSetConnection
       end
     end
   end
@@ -342,6 +331,13 @@ describe Mongoid::Config do
       end
     end
 
+    describe ".identity_map_enabled" do
+
+      it "defaults to false" do
+        described_class.identity_map_enabled.should be_false
+      end
+    end
+
     describe ".include_root_in_json" do
 
       it "defaults to false" do
@@ -365,8 +361,8 @@ describe Mongoid::Config do
 
     describe ".preload_models" do
 
-      it "defaults to true" do
-        described_class.preload_models.should be_true
+      it "defaults to false" do
+        described_class.preload_models.should be_false
       end
     end
 

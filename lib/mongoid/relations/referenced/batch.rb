@@ -30,6 +30,8 @@ module Mongoid #:nodoc:
         #     person.posts << [ post_one, post_two, post_three ]
         #   end
         #
+        # @todo Durran: Move executions to thread local stack.
+        #
         # @param [ Proc ] block The block to execute.
         #
         # @return [ Object ] The result of the operation.
@@ -41,7 +43,6 @@ module Mongoid #:nodoc:
         ensure
           if @executions.zero?
             Threaded.insert = nil
-            raise_mixed if embedded?
             inserter.execute(collection)
           end
         end
